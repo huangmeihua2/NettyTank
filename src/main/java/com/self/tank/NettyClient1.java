@@ -10,6 +10,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.EventExecutorGroup;
 
+import java.util.logging.Logger;
+
 public class NettyClient1 {
     public static void main(String[] args) throws InterruptedException {
         EventLoopGroup group = new NioEventLoopGroup();
@@ -21,7 +23,7 @@ public class NettyClient1 {
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
                         //往pipeline中添加自定义的handler14
-                        socketChannel.pipeline().addLast(new NettyClientHandler());
+                        socketChannel.pipeline().addLast(new ClientTestTcpHandler());
                     }
                 });
         System.out.println("...Client is Ready...");
@@ -33,9 +35,7 @@ public class NettyClient1 {
             e.printStackTrace();
         }
         //关闭连接(异步非阻塞)20
-        cf.channel().
-
-                closeFuture().sync();
+        cf.channel().closeFuture().sync();
     }
 }
 
@@ -54,6 +54,40 @@ class NettyClientHandler extends ChannelInboundHandlerAdapter {
         ByteBuf byteBuf = (ByteBuf) msg;
         //Netty提供了字节缓冲区的toString方法，并且可以设置参数为编码格式：CharsetUtil.UTF_816
         System.out.println("服务器端发来的消息：" + byteBuf.toString(CharsetUtil.UTF_8));
+    }
+}
+class ClientTestTcpHandler extends ChannelInboundHandlerAdapter{
+private static final Logger logger = Logger.getLogger(ClientTestTcpHandler.class.getName());
+private int count;
+private byte[] req;
+
+    public ClientTestTcpHandler() {
+        req = ("QUERY TIME ORDER"+System.getProperty("line.separator")).getBytes();
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        ByteBuf mess = null;
+        for(int i = 0;i<100;i++){
+            mess = Unpooled.buffer(req.length);
+            mess.writeBytes(req);//把字节数组中的字节写入到buf中。
+            ctx.writeAndFlush(mess);
+        }
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+        ByteBuf byteBuf = (ByteBuf) msg;
+        byte[] bytes = new byte[byteBuf.readableBytes()];
+        byteBuf.readBytes(bytes);
+        String body = new String(bytes,"UTF-8");
+        System.out.println("Now is :"+body+";the count is :"+ ++count);
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        logger.warning("Unexpected exception from downstream :"+cause.getMessage());
+        ctx.close();
     }
 }
 
