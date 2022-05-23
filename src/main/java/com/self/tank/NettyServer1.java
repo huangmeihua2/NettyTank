@@ -7,6 +7,8 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
 import io.netty.util.CharsetUtil;
 
 public class NettyServer1 {
@@ -32,6 +34,8 @@ public class NettyServer1 {
                     // 客户端的SocketChannel传入。
                     public void initChannel(SocketChannel sc) {
                         System.out.println(sc);
+                        sc.pipeline().addLast(new LineBasedFrameDecoder(1024));
+                        sc.pipeline().addLast(new StringDecoder());
                         sc.pipeline().addLast(new ServerTestTcpHandler());//往pipeline链中添加
                     }
                 });
@@ -80,11 +84,12 @@ class ServerTestTcpHandler extends ChannelInboundHandlerAdapter{
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf byteBuf = (ByteBuf)msg;
-        byte[] req = new byte[byteBuf.readableBytes()];
-        byteBuf.readBytes(req); //把msg中的消息读入到字节数组中。
+        //ByteBuf byteBuf = (ByteBuf)msg;
+//        byte[] req = new byte[byteBuf.readableBytes()];
+//        byteBuf.readBytes(req); //把msg中的消息读入到字节数组中。
         // 通过字节数组中的字节来创建字符串。
-        String body = new String(req,"UTF-8").substring(0,req.length-System.getProperty("line.separator").length());
+        //String body = new String(req,"UTF-8").substring(0,req.length-System.getProperty("line.separator").length());
+        String body = (String)msg;
         // 打印出接收到的字符串及发送次数。
         System.out.println("The time server receive order :"+body+";the count is :"+ ++count);
        // 当前时间。

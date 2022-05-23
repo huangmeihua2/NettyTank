@@ -7,6 +7,8 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.LineBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
 import io.netty.util.CharsetUtil;
 import io.netty.util.concurrent.EventExecutorGroup;
 
@@ -22,7 +24,11 @@ public class NettyClient1 {
                 .handler(new ChannelInitializer<SocketChannel>() {//创建一个通道初始化对象11
                     @Override
                     protected void initChannel(SocketChannel socketChannel) throws Exception {
-                        //往pipeline中添加自定义的handler14
+                        // 解码器handle,可以将发送的消息中以换行符之类的分割的消息进行自动解码处理。
+                        socketChannel.pipeline().addLast(new LineBasedFrameDecoder(1024));
+                        // 可以将传送过来的消息直接转换成字符串，不用再转成bytebuf
+                        socketChannel.pipeline().addLast(new StringDecoder());
+                        //往pipeline中添加自定义的handler14，用于接收消息。
                         socketChannel.pipeline().addLast(new ClientTestTcpHandler());
                     }
                 });
@@ -62,6 +68,7 @@ private int count;
 private byte[] req;
 
     public ClientTestTcpHandler() {
+        // 换行符在末尾加上。
         req = ("QUERY TIME ORDER"+System.getProperty("line.separator")).getBytes();
     }
 
@@ -77,10 +84,10 @@ private byte[] req;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        ByteBuf byteBuf = (ByteBuf) msg;
-        byte[] bytes = new byte[byteBuf.readableBytes()];
-        byteBuf.readBytes(bytes);
-        String body = new String(bytes,"UTF-8");
+//        ByteBuf byteBuf = (ByteBuf) msg;
+//        byte[] bytes = new byte[byteBuf.readableBytes()];
+//        byteBuf.readBytes(bytes);
+        String body = (String)msg;
         System.out.println("Now is :"+body+";the count is :"+ ++count);
     }
 
